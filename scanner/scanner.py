@@ -1,8 +1,11 @@
 from ping3 import ping
 import socket
 import time
+import requests
 from datetime import datetime
 
+
+BACKEND_URL = "http://localhost:8080/api/devices"
 
 known_devices = {
     "192.168.100.36": "Joel Phone",
@@ -20,6 +23,17 @@ def get_timestamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
+def send_to_backend(device):
+    try:
+        response = requests.post(BACKEND_URL, json=device)
+        if response.status_code == 200:
+            print(f"  → Saved to backend: {device['deviceName']} ({device['ipAddress']})")
+        else:
+            print(f"  → Backend error {response.status_code} for {device['ipAddress']}")
+    except requests.exceptions.ConnectionError:
+        print(f"  → Backend unreachable. Is Spring Boot running?")
+
+
 def scan_device(ip):
     try:
         response = ping(ip, timeout=1)
@@ -35,11 +49,11 @@ def scan_device(ip):
             device_name = get_device_name(ip, hostname)
 
             return {
-                "ip_address": ip,
-                "device_name": device_name,
-                "latency_ms": latency,
+                "ipAddress": ip,
+                "deviceName": device_name,
+                "latencyMs": latency,
                 "status": "ONLINE",
-                "timestamp": get_timestamp()
+                "lastSeen": datetime.now().isoformat()
             }
 
     except Exception as e:
@@ -75,16 +89,27 @@ while True:
     current_devices = {}
 
     for device in current_scan:
-        ip = device["ip_address"]
+        ip = device["ipAddress"]
         current_devices[ip] = device
 
         if ip not in previous_devices:
-            print(f"[{device['timestamp']}] [NEW DEVICE ONLINE] {device['device_name']} ({ip}) - {device['latency_ms']} ms")
+            print(f"[{get_timestamp()}] [NEW DEVICE ONLINE] {device['deviceName']} ({ip}) - {device['latencyMs']} ms")
+
+        send_to_backend(device)
 
     for ip in previous_devices:
         if ip not in current_devices:
             old_device = previous_devices[ip]
-            print(f"[{get_timestamp()}] [DEVICE OFFLINE] {old_device['device_name']} ({ip})")
+            print(f"[{get_timestamp()}] [DEVICE OFFLINE] {old_device['deviceName']} ({ip})")
+
+            offline_device = {
+                "ipAddress": ip,
+                "deviceName": old_device["deviceName"],
+                "latencyMs": 0.0,
+                "status": "OFFLINE",
+                "lastSeen": datetime.now().isoformat()
+            }
+            send_to_backend(offline_device)
 
     previous_devices = current_devices
 
