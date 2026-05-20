@@ -3,6 +3,7 @@ package com.networkmonitor.backend.service;
 import com.networkmonitor.backend.model.Device;
 import com.networkmonitor.backend.repository.DeviceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate; // <-- ADD THIS IMPORT
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ public class DeviceService {
 
     private final DeviceRepository deviceRepository;
     private final NetworkEventService networkEventService;
+    private final SimpMessagingTemplate messagingTemplate; // <-- ADD THIS FOR WEBSOCKETS
 
     public Device saveOrUpdateDevice(Device incomingDevice) {
         Optional<Device> existing = deviceRepository.findByIpAddress(incomingDevice.getIpAddress());
@@ -29,7 +31,12 @@ public class DeviceService {
             device.setStatus(newStatus);
             device.setDeviceName(incomingDevice.getDeviceName());
             device.setLastSeen(LocalDateTime.now());
+
+            // Save the updated device state to the database
             deviceRepository.save(device);
+
+            // <-- ADD THIS: Broadcast the updated device status to the React frontend
+            messagingTemplate.convertAndSend("/topic/devices", device);
 
             if (!previousStatus.equals(newStatus)) {
                 networkEventService.logEvent(
@@ -44,7 +51,12 @@ public class DeviceService {
         }
 
         incomingDevice.setLastSeen(LocalDateTime.now());
+
+        // Save the brand-new discovered device to the database
         deviceRepository.save(incomingDevice);
+
+        // <-- ADD THIS: Broadcast the brand-new device to the React frontend
+        messagingTemplate.convertAndSend("/topic/devices", incomingDevice);
 
         networkEventService.logEvent(
                 incomingDevice.getIpAddress(),
@@ -60,3 +72,4 @@ public class DeviceService {
         return deviceRepository.findAll();
     }
 }
+
