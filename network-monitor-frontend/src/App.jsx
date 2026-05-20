@@ -3,15 +3,60 @@ import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
 import { Activity, Shield, ShieldAlert, Cpu, Wifi, WifiOff, Clock, X, Pencil } from 'lucide-react';
 
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer
+} from 'recharts';
+
+function LatencyChart({ data, color }) {
+  return (
+    <ResponsiveContainer width="100%" height={160}>
+      <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+        <XAxis
+          dataKey="time"
+          tick={{ fontSize: 10, fill: '#64748b' }}
+          interval="preserveStartEnd"
+        />
+        <YAxis
+          tick={{ fontSize: 10, fill: '#64748b' }}
+          unit="ms"
+        />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: '#0f172a',
+            border: '1px solid #1e293b',
+            borderRadius: '8px',
+            fontSize: '12px',
+            color: '#f8fafc'
+          }}
+          formatter={(value) => [`${value} ms`, 'Latency']}
+        />
+        <Line
+          type="monotone"
+          dataKey="latency"
+          stroke={color}
+          strokeWidth={2}
+          dot={false}
+          activeDot={{ r: 4, fill: color }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
 function DeviceModal({ device, onClose, onRename }) {
   const [history, setHistory] = useState([]);
+  const [latencyData, setLatencyData] = useState([]);
   const [newName, setNewName] = useState(device.deviceName || '');
   const [saving, setSaving] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [loadingLatency, setLoadingLatency] = useState(true);
 
   const encodedIp = encodeURIComponent(device.ipAddress);
 
   useEffect(() => {
+    // Fetch connection history
     fetch(`http://localhost:8080/api/devices/${encodedIp}/history`)
       .then(res => res.json())
       .then(data => {
@@ -19,6 +64,23 @@ function DeviceModal({ device, onClose, onRename }) {
         setLoadingHistory(false);
       })
       .catch(() => setLoadingHistory(false));
+
+    // Fetch latency history
+    fetch(`http://localhost:8080/api/devices/${encodedIp}/latency`)
+      .then(res => res.json())
+      .then(data => {
+        const chartData = data.map(event => ({
+          time: new Date(event.timestamp).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          latency: parseFloat(event.latencyMs.toFixed(2))
+        }));
+        setLatencyData(chartData);
+        setLoadingLatency(false);
+      })
+      .catch(() => setLoadingLatency(false));
+
   }, [encodedIp]);
 
   const handleRename = () => {
@@ -40,9 +102,15 @@ function DeviceModal({ device, onClose, onRename }) {
 
   const isOnline = device.status === 'ONLINE';
 
+  // Determine line color based on avg latency
+  const avgLatency = latencyData.length > 0
+    ? latencyData.reduce((sum, d) => sum + d.latency, 0) / latencyData.length
+    : 0;
+  const latencyColor = avgLatency < 50 ? '#34d399' : avgLatency < 150 ? '#fbbf24' : '#f87171';
+
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl">
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
 
         {/* Modal Header */}
         <div className="flex justify-between items-start p-6 border-b border-slate-800">
@@ -98,7 +166,7 @@ function DeviceModal({ device, onClose, onRename }) {
         {/* Device Stats */}
         <div className="px-6 py-4 border-b border-slate-800 grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Latency</p>
+            <p className="text-xs text-slate-500 uppercase tracking-wider">Current Latency</p>
             <p className={`text-lg font-bold mt-0.5 ${isOnline ? 'text-cyan-400' : 'text-slate-500'}`}>
               {isOnline ? `${device.latencyMs?.toFixed(1)} ms` : '--'}
             </p>
@@ -111,7 +179,30 @@ function DeviceModal({ device, onClose, onRename }) {
           </div>
         </div>
 
-        {/* Device History */}
+        {/* Latency Chart */}
+        <div className="p-6 border-b border-slate-800">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-4">
+            <Activity className="w-3.5 h-3.5 inline mr-1" />
+            Latency History
+            {avgLatency > 0 && (
+              <span className="ml-2 normal-case font-normal text-slate-500">
+                avg {avgLatency.toFixed(1)} ms
+              </span>
+            )}
+          </p>
+
+          {loadingLatency ? (
+            <p className="text-sm text-slate-500 text-center py-4">Loading chart...</p>
+          ) : latencyData.length === 0 ? (
+            <p className="text-sm text-slate-500 text-center py-4">
+              No latency data yet. Data builds up over time as the scanner runs.
+            </p>
+          ) : (
+            <LatencyChart data={latencyData} color={latencyColor} />
+          )}
+        </div>
+
+        {/* Connection History */}
         <div className="p-6">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400 mb-3">
             <Clock className="w-3.5 h-3.5 inline mr-1" />

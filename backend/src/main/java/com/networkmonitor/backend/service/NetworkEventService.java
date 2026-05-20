@@ -38,4 +38,8 @@ public class NetworkEventService {
         return networkEventRepository.findByIpAddressOrderByTimestampDesc(ipAddress);
     }
 
+    public List<NetworkEvent> getLatencyHistory(String ipAddress) {
+        return networkEventRepository.findLatencyHistoryByIp(ipAddress);
+    }
+
 }

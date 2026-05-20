@@ -49,6 +49,12 @@ public class DeviceController {
         return ResponseEntity.ok(networkEventService.getDeviceHistory(ipAddress));
     }
 
+    @GetMapping("/devices/{ipAddress}/latency")
+    public ResponseEntity<List<NetworkEvent>> getLatencyHistory(
+            @PathVariable String ipAddress) {
+        return ResponseEntity.ok(networkEventService.getLatencyHistory(ipAddress));
+    }
+
     @GetMapping("/events")
     public ResponseEntity<List<NetworkEvent>> getRecentEvents() {
         return ResponseEntity.ok(networkEventService.getRecentEvents());
