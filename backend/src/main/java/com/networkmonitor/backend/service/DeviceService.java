@@ -11,29 +11,52 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-
 public class DeviceService {
 
     private final DeviceRepository deviceRepository;
+    private final NetworkEventService networkEventService;
 
     public Device saveOrUpdateDevice(Device incomingDevice) {
         Optional<Device> existing = deviceRepository.findByIpAddress(incomingDevice.getIpAddress());
 
         if (existing.isPresent()) {
             Device device = existing.get();
+
+            String previousStatus = device.getStatus();
+            String newStatus = incomingDevice.getStatus();
+
             device.setLatencyMs(incomingDevice.getLatencyMs());
-            device.setStatus(incomingDevice.getStatus());
+            device.setStatus(newStatus);
             device.setDeviceName(incomingDevice.getDeviceName());
             device.setLastSeen(LocalDateTime.now());
-            return deviceRepository.save(device);
+            deviceRepository.save(device);
+
+            if (!previousStatus.equals(newStatus)) {
+                networkEventService.logEvent(
+                        device.getIpAddress(),
+                        device.getDeviceName(),
+                        newStatus.equals("ONLINE") ? "DEVICE_ONLINE" : "DEVICE_OFFLINE",
+                        incomingDevice.getLatencyMs()
+                );
+            }
+
+            return device;
         }
 
         incomingDevice.setLastSeen(LocalDateTime.now());
-        return deviceRepository.save(incomingDevice);
+        deviceRepository.save(incomingDevice);
+
+        networkEventService.logEvent(
+                incomingDevice.getIpAddress(),
+                incomingDevice.getDeviceName(),
+                "DEVICE_ONLINE",
+                incomingDevice.getLatencyMs()
+        );
+
+        return incomingDevice;
     }
 
     public List<Device> getAllDevices() {
         return deviceRepository.findAll();
     }
 }
-
