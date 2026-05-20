@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
 import { Activity, Shield, ShieldAlert, Cpu, Wifi, WifiOff, Clock, X, Pencil } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -341,6 +343,95 @@ function App() {
       .catch(err => console.error("Error clearing offline devices:", err));
   };
 
+const handleExportCSV = () => {
+  const headers = ['IP Address', 'Device Name', 'Status', 'Latency (ms)', 'Last Seen'];
+
+  const rows = devices.map(d => [
+    d.ipAddress,
+    d.deviceName || 'Unknown Device',
+    d.status,
+    d.latencyMs ? d.latencyMs.toFixed(2) : '--',
+    d.lastSeen ? new Date(d.lastSeen).toLocaleString() : 'Never'
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map(row => row.map(cell => `"${cell}"`).join(','))
+    .join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `network-report-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+const handleExportPDF = () => {
+  const doc = new jsPDF();
+
+  // Header
+  doc.setFontSize(20);
+  doc.setTextColor(6, 182, 212);
+  doc.text('PulseNet Ops', 14, 20);
+
+  doc.setFontSize(11);
+  doc.setTextColor(100, 116, 139);
+  doc.text('Real-Time Network Monitoring Report', 14, 28);
+
+  doc.setFontSize(9);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 35);
+
+  // Summary stats
+  doc.setFontSize(10);
+  doc.setTextColor(30, 41, 59);
+  doc.text(`Total Devices: ${totalDevices}`, 14, 45);
+  doc.text(`Online: ${onlineDevices}`, 60, 45);
+  doc.text(`Offline: ${offlineDevices}`, 95, 45);
+  doc.text(`Avg Latency: ${avgLatency} ms`, 130, 45);
+
+  // Device table
+  autoTable(doc, {
+    startY: 52,
+    head: [['IP Address', 'Device Name', 'Status', 'Latency (ms)', 'Last Seen']],
+    body: devices.map(d => [
+      d.ipAddress,
+      d.deviceName || 'Unknown Device',
+      d.status,
+      d.latencyMs ? d.latencyMs.toFixed(2) : '--',
+      d.lastSeen ? new Date(d.lastSeen).toLocaleString() : 'Never'
+    ]),
+    headStyles: {
+      fillColor: [6, 182, 212],
+      textColor: 255,
+      fontStyle: 'bold',
+      fontSize: 9
+    },
+    bodyStyles: {
+      fontSize: 9,
+      textColor: [30, 41, 59]
+    },
+    alternateRowStyles: {
+      fillColor: [241, 245, 249]
+    },
+    didDrawCell: (data) => {
+      if (data.section === 'body' && data.column.index === 2) {
+        const status = data.cell.raw;
+        if (status === 'ONLINE') {
+          doc.setTextColor(5, 150, 105);
+        } else {
+          doc.setTextColor(225, 29, 72);
+        }
+        doc.setFontSize(9);
+        doc.text(status, data.cell.x + 2, data.cell.y + 5);
+        data.cell.text = [];
+      }
+    }
+  });
+
+  doc.save(`network-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+};
+
   const totalDevices = devices.length;
   const onlineDevices = devices.filter(d => d.status === 'ONLINE').length;
   const offlineDevices = totalDevices - onlineDevices;
@@ -360,11 +451,25 @@ function App() {
           </h1>
           <p className="text-sm text-slate-400 mt-1">Real-Time Core Infrastructure Network Monitor</p>
         </div>
-        <div className="flex items-center gap-2 bg-slate-800/60 px-4 py-2 rounded-full border border-slate-700/50">
-          <span className={`w-2.5 h-2.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
-          <span className="text-xs font-semibold tracking-wider uppercase text-slate-300">
-            {connected ? 'Live Stream Connected' : 'Stream Disconnected'}
-          </span>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={handleExportCSV}
+            className="text-xs font-semibold text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-2 rounded-lg transition-colors"
+          >
+            Export CSV
+          </button>
+          <button
+            onClick={handleExportPDF}
+            className="text-xs font-semibold text-slate-300 hover:text-white border border-slate-700 hover:border-slate-500 px-3 py-2 rounded-lg transition-colors"
+          >
+            Export PDF
+          </button>
+          <div className="flex items-center gap-2 bg-slate-800/60 px-4 py-2 rounded-full border border-slate-700/50">
+            <span className={`w-2.5 h-2.5 rounded-full ${connected ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
+            <span className="text-xs font-semibold tracking-wider uppercase text-slate-300">
+              {connected ? 'Live Stream Connected' : 'Stream Disconnected'}
+            </span>
+          </div>
         </div>
       </header>
 
