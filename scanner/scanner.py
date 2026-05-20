@@ -4,6 +4,7 @@ import time
 import requests
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from getmac import get_mac_address
 
 
 BACKEND_URL = "http://localhost:8080/api/devices"
@@ -14,15 +15,64 @@ known_devices = {
     "192.168.100.34": "Joel Laptop"
 }
 
-
-def get_device_name(ip, hostname):
-    if ip in known_devices:
-        return known_devices[ip]
-    return hostname
+# Cache manufacturer lookups so we don't spam the API
+manufacturer_cache = {}
 
 
 def get_timestamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def get_manufacturer(ip):
+    try:
+        mac = get_mac_address(ip=ip)
+
+        if not mac or mac == "00:00:00:00:00:00":
+            return None
+
+        # Use first 6 characters of MAC (OUI prefix) as cache key
+        oui = mac.replace(":", "").upper()[:6]
+
+        if oui in manufacturer_cache:
+            return manufacturer_cache[oui]
+
+        # Look up manufacturer from free public API
+        response = requests.get(
+            f"https://api.maclookup.app/v2/macs/{mac}",
+            timeout=3
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            company = data.get("company", "").strip()
+
+            if company and company != "":
+                # Shorten verbose manufacturer names
+                clean_name = company.split(" ")[0].title()
+                manufacturer_cache[oui] = clean_name
+                return clean_name
+        manufacturer_cache[oui] = None
+        return None
+
+    except Exception:
+        return None
+
+
+def get_device_name(ip, hostname):
+    # Known devices take highest priority
+    if ip in known_devices:
+        return known_devices[ip]
+
+    # Try to get manufacturer from MAC address
+    manufacturer = get_manufacturer(ip)
+    if manufacturer:
+        return f"{manufacturer} Device"
+
+    # Fall back to hostname if DNS resolved it
+    if hostname and hostname != "Unknown Device":
+        return hostname
+
+    return "Unknown Device"
 
 
 def send_to_backend(device):
@@ -66,14 +116,11 @@ def scan_device(ip):
 
 def get_network_prefix():
     try:
-        # Connect to an external address to determine local IP
-        # No data is actually sent — this just picks the right interface
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         local_ip = s.getsockname()[0]
         s.close()
 
-        # Build the network prefix from the first 3 octets
         parts = local_ip.split(".")
         prefix = f"{parts[0]}.{parts[1]}.{parts[2]}."
         print(f"[{get_timestamp()}] Detected local IP: {local_ip}")
@@ -145,4 +192,3 @@ while True:
     print(f"\n[{get_timestamp()}] Scan complete in {scan_duration}s. Found {len(current_devices)} devices.")
     print(f"[{get_timestamp()}] Waiting 30 seconds...\n")
     time.sleep(30)
-    
