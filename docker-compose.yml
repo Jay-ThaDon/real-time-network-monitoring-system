@@ -1,0 +1,59 @@
+services:
+  # 1. Database Container Service
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: network-monitor-db
+    environment:
+      POSTGRES_DB: network_monitor
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_password_here # Replace with your local DB password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - net-monitor-network
+
+  # 2. Spring Boot Backend Service
+  backend:
+    build: ./backend
+    container_name: network-monitor-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/network_monitor
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=your_password_here
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    depends_on:
+      - postgres-db
+    networks:
+      - net-monitor-network
+
+  # 3. React Frontend Dashboard Service
+  frontend:
+    build: ./network-monitor-frontend
+    container_name: network-monitor-frontend
+    ports:
+      - "5173:80" # Maps production Nginx port 80 out to your familiar local port 5173
+    depends_on:
+      - backend
+    networks:
+      - net-monitor-network
+
+  # 4. Python Tracker Scanning Service
+  network-scanner:
+    build: ./scanner   # Points directly to the new subfolder
+    container_name: network-monitor-scanner
+    environment:
+      - BACKEND_API_URL=http://backend:8080/api
+    depends_on:
+      - backend
+    network_mode: "host" 
+
+volumes:
+  pgdata:
+
+networks:
+  net-monitor-network:
+    driver: bridge
