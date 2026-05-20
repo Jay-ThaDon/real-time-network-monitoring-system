@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -30,9 +31,26 @@ public class DeviceController {
         return ResponseEntity.ok(deviceService.getAllDevices());
     }
 
+    @PutMapping("/devices/{ipAddress}/rename")
+    public ResponseEntity<Device> renameDevice(
+            @PathVariable String ipAddress,
+            @RequestBody Map<String, String> body) {
+        String newName = body.get("deviceName");
+        Device updated = deviceService.renameDevice(ipAddress, newName);
+        if (updated == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(updated);
+    }
+
+    @GetMapping("/devices/{ipAddress}/history")
+    public ResponseEntity<List<NetworkEvent>> getDeviceHistory(
+            @PathVariable String ipAddress) {
+        return ResponseEntity.ok(networkEventService.getDeviceHistory(ipAddress));
+    }
+
     @GetMapping("/events")
     public ResponseEntity<List<NetworkEvent>> getRecentEvents() {
         return ResponseEntity.ok(networkEventService.getRecentEvents());
     }
 }
-

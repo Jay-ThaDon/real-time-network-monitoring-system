@@ -7,4 +7,6 @@ import java.util.List;
 public interface NetworkEventRepository extends JpaRepository<NetworkEvent, Long> {
 
     List<NetworkEvent> findTop50ByOrderByTimestampDesc();
+
+    List<NetworkEvent> findByIpAddressOrderByTimestampDesc(String ipAddress);
 }

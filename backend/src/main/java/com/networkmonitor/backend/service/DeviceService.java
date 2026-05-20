@@ -68,6 +68,22 @@ public class DeviceService {
         return incomingDevice;
     }
 
+    public Device renameDevice(String ipAddress, String newName) {
+        Optional<Device> existing = deviceRepository.findByIpAddress(ipAddress);
+
+        if (existing.isEmpty()) {
+            return null;
+        }
+
+        Device device = existing.get();
+        device.setDeviceName(newName);
+        deviceRepository.save(device);
+
+        messagingTemplate.convertAndSend("/topic/devices", device);
+
+        return device;
+    }
+
     public List<Device> getAllDevices() {
         return deviceRepository.findAll();
     }

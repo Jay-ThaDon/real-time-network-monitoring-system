@@ -33,4 +33,9 @@ public class NetworkEventService {
     public List<NetworkEvent> getRecentEvents() {
         return networkEventRepository.findTop50ByOrderByTimestampDesc();
     }
+
+    public List<NetworkEvent> getDeviceHistory(String ipAddress) {
+        return networkEventRepository.findByIpAddressOrderByTimestampDesc(ipAddress);
+    }
+
 }
