@@ -3,9 +3,11 @@ import socket
 import time
 import requests
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 BACKEND_URL = "http://localhost:8080/api/devices"
+MAX_THREADS = 50
 
 known_devices = {
     "192.168.100.36": "Joel Phone",
@@ -25,9 +27,9 @@ def get_timestamp():
 
 def send_to_backend(device):
     try:
-        response = requests.post(BACKEND_URL, json=device)
+        response = requests.post(BACKEND_URL, json=device, timeout=5)
         if response.status_code == 200:
-            print(f"  → Saved to backend: {device['deviceName']} ({device['ipAddress']})")
+            print(f"  → Saved: {device['deviceName']} ({device['ipAddress']}) - {device['status']}")
         else:
             print(f"  → Backend error {response.status_code} for {device['ipAddress']}")
     except requests.exceptions.ConnectionError:
@@ -62,21 +64,46 @@ def scan_device(ip):
     return None
 
 
-def scan_network(network_prefix, start=1, end=254):
-    devices = []
+def get_network_prefix():
+    try:
+        # Connect to an external address to determine local IP
+        # No data is actually sent — this just picks the right interface
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
 
-    for i in range(start, end + 1):
-        ip = network_prefix + str(i)
-        device = scan_device(ip)
+        # Build the network prefix from the first 3 octets
+        parts = local_ip.split(".")
+        prefix = f"{parts[0]}.{parts[1]}.{parts[2]}."
+        print(f"[{get_timestamp()}] Detected local IP: {local_ip}")
+        print(f"[{get_timestamp()}] Scanning network: {prefix}0/24\n")
+        return prefix
 
-        if device:
-            devices.append(device)
+    except Exception as e:
+        print(f"[ERROR] Could not detect network: {e}")
+        print("Falling back to 192.168.100.")
+        return "192.168.100."
 
-    return devices
+
+def scan_network(network_prefix):
+    ips = [network_prefix + str(i) for i in range(1, 255)]
+    results = []
+
+    with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
+        futures = {executor.submit(scan_device, ip): ip for ip in ips}
+
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                results.append(result)
+
+    return results
 
 
-network_prefix = "192.168.100."
+# --- MAIN LOOP ---
 
+network_prefix = get_network_prefix()
 previous_devices = {}
 
 print(f"[{get_timestamp()}] Network monitor started.\n")
@@ -84,7 +111,9 @@ print(f"[{get_timestamp()}] Network monitor started.\n")
 while True:
     print(f"[{get_timestamp()}] Scanning network...\n")
 
+    scan_start = time.time()
     current_scan = scan_network(network_prefix)
+    scan_duration = round(time.time() - scan_start, 2)
 
     current_devices = {}
 
@@ -93,14 +122,14 @@ while True:
         current_devices[ip] = device
 
         if ip not in previous_devices:
-            print(f"[{get_timestamp()}] [NEW DEVICE ONLINE] {device['deviceName']} ({ip}) - {device['latencyMs']} ms")
+            print(f"[{get_timestamp()}] [NEW DEVICE] {device['deviceName']} ({ip}) - {device['latencyMs']} ms")
 
         send_to_backend(device)
 
     for ip in previous_devices:
         if ip not in current_devices:
             old_device = previous_devices[ip]
-            print(f"[{get_timestamp()}] [DEVICE OFFLINE] {old_device['deviceName']} ({ip})")
+            print(f"[{get_timestamp()}] [OFFLINE] {old_device['deviceName']} ({ip})")
 
             offline_device = {
                 "ipAddress": ip,
@@ -113,6 +142,7 @@ while True:
 
     previous_devices = current_devices
 
-    print(f"\n[{get_timestamp()}] Waiting 30 seconds...\n")
+    print(f"\n[{get_timestamp()}] Scan complete in {scan_duration}s. Found {len(current_devices)} devices.")
+    print(f"[{get_timestamp()}] Waiting 30 seconds...\n")
     time.sleep(30)
     
