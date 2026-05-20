@@ -1,0 +1,16 @@
+# Python
+scanner/venv/
+scanner/__pycache__/
+*.pyc
+
+# Java
+backend/target/
+*.class
+
+# IntelliJ
+.idea/
+*.iml
+
+# Environment
+*.env
+application.properties
