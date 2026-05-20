@@ -43,6 +43,12 @@ public class DeviceController {
         return ResponseEntity.ok(updated);
     }
 
+    @DeleteMapping("/devices/offline")
+    public ResponseEntity<Void> clearOfflineDevices() {
+        deviceService.clearOfflineDevices();
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/devices/{ipAddress}/history")
     public ResponseEntity<List<NetworkEvent>> getDeviceHistory(
             @PathVariable String ipAddress) {

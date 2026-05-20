@@ -331,6 +331,16 @@ function App() {
     setSelectedDevice(updatedDevice);
   };
 
+  const handleClearOffline = () => {
+    fetch('http://localhost:8080/api/devices/offline', {
+      method: 'DELETE'
+    })
+      .then(() => {
+        setDevices(prev => prev.filter(d => d.status !== 'OFFLINE'));
+      })
+      .catch(err => console.error("Error clearing offline devices:", err));
+  };
+
   const totalDevices = devices.length;
   const onlineDevices = devices.filter(d => d.status === 'ONLINE').length;
   const offlineDevices = totalDevices - onlineDevices;
@@ -395,11 +405,21 @@ function App() {
 
         {/* DEVICE INVENTORY */}
         <div className="lg:col-span-2">
-          <div className="flex items-center gap-2 mb-4">
-            <Activity className="w-5 h-5 text-cyan-400" />
-            <h2 className="text-xl font-bold text-slate-200">Live Device Inventory</h2>
-            <span className="text-xs text-slate-500 ml-1">(click a device to rename or view history)</span>
-          </div>
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-cyan-400" />
+                <h2 className="text-xl font-bold text-slate-200">Live Device Inventory</h2>
+                <span className="text-xs text-slate-500 ml-1">(click a device to rename or view history)</span>
+            </div>
+            {offlineDevices > 0 && (
+              <button
+                onClick={handleClearOffline}
+                className="text-xs font-semibold text-rose-400 hover:text-rose-300 border border-rose-900/50 hover:border-rose-500/50 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Clear {offlineDevices} Offline
+              </button>
+            )}
+        </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {devices.map((device) => {

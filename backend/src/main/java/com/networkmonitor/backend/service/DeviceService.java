@@ -84,6 +84,11 @@ public class DeviceService {
         return device;
     }
 
+    public void clearOfflineDevices() {
+        List<Device> offlineDevices = deviceRepository.findByStatus("OFFLINE");
+        deviceRepository.deleteAll(offlineDevices);
+    }
+
     public List<Device> getAllDevices() {
         return deviceRepository.findAll();
     }
