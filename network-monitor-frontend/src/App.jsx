@@ -167,7 +167,7 @@ function App() {
     fetch('http://localhost:8080/api/events')
       .then(res => res.json())
       .then(data => {
-        const sorted = data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        const sorted = [...data].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setEvents(sorted);
       })
       .catch(err => console.error("Error fetching events:", err));
@@ -203,11 +203,16 @@ function App() {
 
       stompClient.subscribe('/topic/events', (message) => {
         const newEvent = JSON.parse(message.body);
-        setEvents(prevEvents =>
-          [newEvent, ...prevEvents]
+        setEvents(prevEvents => {
+          const merged = [newEvent, ...prevEvents];
+          const unique = merged.filter(
+            (event, index, self) =>
+              index === self.findIndex(e => e.id === event.id)
+          );
+          return unique
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-            .slice(0, 50)
-        );
+            .slice(0, 50);
+        });
       });
 
     }, (error) => {
