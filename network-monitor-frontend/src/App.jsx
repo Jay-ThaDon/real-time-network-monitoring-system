@@ -467,6 +467,7 @@ function App() {
           </div>
         </div>
 
+
         {/* EVENT FEED */}
         <div className="lg:col-span-1">
           <div className="flex items-center gap-2 mb-4">
