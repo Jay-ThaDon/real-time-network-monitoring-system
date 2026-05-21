@@ -59,7 +59,7 @@ function DeviceModal({ device, onClose, onRename }) {
 
   useEffect(() => {
     // Fetch connection history
-    fetch(`http://localhost:8080/api/devices/${encodedIp}/history`)
+    fetch(`/api/devices/${encodedIp}/history`)
       .then(res => res.json())
       .then(data => {
         setHistory(data);
@@ -68,7 +68,7 @@ function DeviceModal({ device, onClose, onRename }) {
       .catch(() => setLoadingHistory(false));
 
     // Fetch latency history
-    fetch(`http://localhost:8080/api/devices/${encodedIp}/latency`)
+    fetch(`/api/devices/${encodedIp}/latency`)
       .then(res => res.json())
       .then(data => {
         const chartData = data.map(event => ({
@@ -89,7 +89,7 @@ function DeviceModal({ device, onClose, onRename }) {
     if (!newName.trim()) return;
     setSaving(true);
 
-    fetch(`http://localhost:8080/api/devices/${encodedIp}/rename`, {
+    fetch(`/api/devices/${encodedIp}/rename`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ deviceName: newName.trim() })
@@ -252,12 +252,12 @@ function App() {
   const [selectedDevice, setSelectedDevice] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/devices')
+    fetch('/api/devices')
       .then(res => res.json())
       .then(data => setDevices(data))
       .catch(err => console.error("Error fetching devices:", err));
 
-    fetch('http://localhost:8080/api/events')
+    fetch('/api/events')
       .then(res => res.json())
       .then(data => {
         const sorted = [...data].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -267,7 +267,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const socket = new SockJS('http://localhost:8080/ws', null, {
+    const socket = new SockJS('/ws', null, {
       transports: ['xhr-streaming', 'xhr-polling']
     });
     const stompClient = Stomp.over(socket);
@@ -334,7 +334,7 @@ function App() {
   };
 
   const handleClearOffline = () => {
-    fetch('http://localhost:8080/api/devices/offline', {
+    fetch('/api/devices/offline', {
       method: 'DELETE'
     })
       .then(() => {
