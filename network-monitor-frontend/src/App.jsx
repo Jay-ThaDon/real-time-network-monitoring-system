@@ -5,6 +5,8 @@ import { Activity, Shield, ShieldAlert, Cpu, Wifi, WifiOff, Clock, X, Pencil } f
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer
@@ -246,7 +248,7 @@ function DeviceModal({ device, onClose, onRename }) {
 }
 
 function App() {
-  const API_URL = import.meta.env.VITE_API_URL || '';
+  
   const [devices, setDevices] = useState([]);
   const [events, setEvents] = useState([]);
   const [connected, setConnected] = useState(false);
