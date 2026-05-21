@@ -178,7 +178,7 @@ function DeviceModal({ device, onClose, onRename }) {
           <div>
             <p className="text-xs text-slate-500 uppercase tracking-wider">Last Seen</p>
             <p className="text-sm font-semibold text-slate-300 mt-0.5">
-              {device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString() : 'Never'}
+              {device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true}) : 'Never'}
             </p>
           </div>
         </div>
@@ -233,7 +233,7 @@ function DeviceModal({ device, onClose, onRename }) {
                       </span>
                     </div>
                     <span className="text-xs text-slate-400">
-                      {event.timestamp ? new Date(event.timestamp).toLocaleString() : ''}
+                      {event.timestamp ? new Date(event.timestamp).toLocaleString([], {dateStyle: 'short', timeStyle: 'short'}) : ''}
                     </span>
                   </div>
                 );
@@ -354,7 +354,7 @@ const handleExportCSV = () => {
     d.deviceName || 'Unknown Device',
     d.status,
     d.latencyMs ? d.latencyMs.toFixed(2) : '--',
-    d.lastSeen ? new Date(d.lastSeen).toLocaleString() : 'Never'
+    d.lastSeen ? new Date(d.lastSeen).toLocaleString([], {dateStyle: 'short', timeStyle: 'short'}) : 'Never'
   ]);
 
   const csvContent = [headers, ...rows]
@@ -383,7 +383,7 @@ const handleExportPDF = () => {
   doc.text('Real-Time Network Monitoring Report', 14, 28);
 
   doc.setFontSize(9);
-  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 35);
+  doc.text(`Generated: ${new Date().toLocaleString([], {dateStyle: 'short', timeStyle: 'short'})}`, 14, 35);
 
   // Summary stats
   doc.setFontSize(10);
@@ -402,7 +402,7 @@ const handleExportPDF = () => {
       d.deviceName || 'Unknown Device',
       d.status,
       d.latencyMs ? d.latencyMs.toFixed(2) : '--',
-      d.lastSeen ? new Date(d.lastSeen).toLocaleString() : 'Never'
+      d.lastSeen ? new Date(d.lastSeen).toLocaleString([], {dateStyle: 'short', timeStyle: 'short'}) : 'Never'
     ]),
     headStyles: {
       fillColor: [6, 182, 212],
@@ -563,7 +563,7 @@ const handleExportPDF = () => {
                   <div className="mt-5 flex justify-between items-center border-t border-slate-800/80 pt-3 pl-2 text-xs text-slate-400">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-slate-500" />
-                      Last Seen: {device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString() : 'Never'}
+                      Last Seen: {device.lastSeen ? new Date(device.lastSeen).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true}) : 'Never'}
                     </span>
                     <span className={`font-semibold ${isOnline ? 'text-cyan-400' : 'text-slate-500'}`}>
                       {isOnline ? `${device.latencyMs?.toFixed(1) || '0.0'} ms` : '--'}
@@ -601,7 +601,7 @@ const handleExportPDF = () => {
                       <div className="flex justify-between items-baseline gap-2">
                         <p className="text-xs font-mono text-slate-400 truncate">{event.ipAddress}</p>
                         <span className="text-[10px] font-medium text-slate-500 shrink-0">
-                          {event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : ''}
+                          {event.timestamp ? new Date(event.timestamp).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true}) : ''}
                         </span>
                       </div>
                       <p className="text-sm font-semibold text-slate-200 mt-0.5 truncate">
