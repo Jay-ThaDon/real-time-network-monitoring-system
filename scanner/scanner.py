@@ -10,11 +10,6 @@ from getmac import get_mac_address
 BACKEND_URL = "https://network-monitor-backend.onrender.com/api/devices"
 MAX_THREADS = 50
 
-known_devices = {
-    "192.168.100.36": "Joel Phone",
-    "192.168.100.34": "Joel Laptop"
-}
-
 # Cache manufacturer lookups so we don't spam the API
 manufacturer_cache = {}
 
@@ -57,11 +52,8 @@ def get_manufacturer(ip):
     except Exception:
         return None
 
-
 def get_device_name(ip, hostname):
-    # Known devices take highest priority
-    if ip in known_devices:
-        return known_devices[ip]
+    return hostname
 
     # Try to get manufacturer from MAC address
     manufacturer = get_manufacturer(ip)
