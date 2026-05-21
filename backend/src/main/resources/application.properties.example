@@ -1,5 +1,5 @@
-spring.datasource.url=jdbc:postgresql://localhost:5432/network_monitor
-spring.datasource.username=your_username
-spring.datasource.password=your_password
+DATABASE_URL=jdbc:postgresql://localhost:5432/network_monitor
+DB_USER=your_username
+DB_PASSWORD=your_password
 spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
+spring.jpa.show-sql=false
