@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from getmac import get_mac_address
 
 
-BACKEND_URL = "http://localhost:8080/api/devices"
+BACKEND_URL = "https://network-monitor-backend.onrender.com/api/devices"
 MAX_THREADS = 50
 
 known_devices = {

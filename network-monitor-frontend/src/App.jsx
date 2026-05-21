@@ -59,7 +59,7 @@ function DeviceModal({ device, onClose, onRename }) {
 
   useEffect(() => {
     // Fetch connection history
-    fetch(`/api/devices/${encodedIp}/history`)
+    fetch(`${API_URL}/api/devices/${encodedIp}/history`)
       .then(res => res.json())
       .then(data => {
         setHistory(data);
@@ -68,7 +68,7 @@ function DeviceModal({ device, onClose, onRename }) {
       .catch(() => setLoadingHistory(false));
 
     // Fetch latency history
-    fetch(`/api/devices/${encodedIp}/latency`)
+    fetch(`${API_URL}/api/devices/${encodedIp}/latency`)
       .then(res => res.json())
       .then(data => {
         const chartData = data.map(event => ({
@@ -89,7 +89,7 @@ function DeviceModal({ device, onClose, onRename }) {
     if (!newName.trim()) return;
     setSaving(true);
 
-    fetch(`/api/devices/${encodedIp}/rename`, {
+    fetch(`${API_URL}/api/devices/${encodedIp}/rename`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ deviceName: newName.trim() })
@@ -246,18 +246,19 @@ function DeviceModal({ device, onClose, onRename }) {
 }
 
 function App() {
+  const API_URL = import.meta.env.VITE_API_URL || '';
   const [devices, setDevices] = useState([]);
   const [events, setEvents] = useState([]);
   const [connected, setConnected] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState(null);
 
   useEffect(() => {
-    fetch('/api/devices')
+    fetch(`${API_URL}/api/devices`)      
       .then(res => res.json())
       .then(data => setDevices(data))
       .catch(err => console.error("Error fetching devices:", err));
 
-    fetch('/api/events')
+    fetch(`${API_URL}/api/events`)
       .then(res => res.json())
       .then(data => {
         const sorted = [...data].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -267,7 +268,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const socket = new SockJS('/ws', null, {
+    const socket = new SockJS(`${API_URL}/ws`, null, {
       transports: ['xhr-streaming', 'xhr-polling']
     });
     const stompClient = Stomp.over(socket);
@@ -334,7 +335,7 @@ function App() {
   };
 
   const handleClearOffline = () => {
-    fetch('/api/devices/offline', {
+    fetch(`${API_URL}/api/devices/offline`, {
       method: 'DELETE'
     })
       .then(() => {
