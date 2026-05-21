@@ -14,7 +14,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = {
+        "http://localhost:5173",
+        "http://localhost",
+        "https://real-time-network-monitoring-system.vercel.app"
+})
+
 public class DeviceController {
 
     private final DeviceService deviceService;
