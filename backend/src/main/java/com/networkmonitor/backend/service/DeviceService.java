@@ -18,6 +18,8 @@ public class DeviceService {
     private final NetworkEventService networkEventService;
     private final SimpMessagingTemplate messagingTemplate; // <-- ADD THIS FOR WEBSOCKETS
 
+    private String currentNetwork = "Unknown Network";
+
     public Device saveOrUpdateDevice(Device incomingDevice) {
         Optional<Device> existing = deviceRepository.findByIpAddress(incomingDevice.getIpAddress());
 
@@ -87,6 +89,29 @@ public class DeviceService {
     public void clearOfflineDevices() {
         List<Device> offlineDevices = deviceRepository.findByStatus("OFFLINE");
         deviceRepository.deleteAll(offlineDevices);
+    }
+
+    public void startNewSession(String networkPrefix) {
+        currentNetwork = networkPrefix;
+
+        // Mark all existing devices as offline
+        List<Device> allDevices = deviceRepository.findAll();
+        for (Device device : allDevices) {
+            if (device.getStatus().equals("ONLINE")) {
+                device.setStatus("OFFLINE");
+                deviceRepository.save(device);
+                networkEventService.logEvent(
+                        device.getIpAddress(),
+                        device.getDeviceName(),
+                        "DEVICE_OFFLINE",
+                        0.0
+                );
+            }
+        }
+    }
+
+    public String getCurrentNetwork() {
+        return currentNetwork;
     }
 
     public List<Device> getAllDevices() {

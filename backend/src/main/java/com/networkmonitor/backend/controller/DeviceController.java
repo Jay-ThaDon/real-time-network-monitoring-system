@@ -70,4 +70,17 @@ public class DeviceController {
     public ResponseEntity<List<NetworkEvent>> getRecentEvents() {
         return ResponseEntity.ok(networkEventService.getRecentEvents());
     }
+
+    @PostMapping("/session/start")
+    public ResponseEntity<Void> startSession(@RequestBody Map<String, String> body) {
+        String networkPrefix = body.get("networkPrefix");
+        deviceService.startNewSession(networkPrefix);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/session/network")
+    public ResponseEntity<Map<String, String>> getCurrentNetwork() {
+        return ResponseEntity.ok(Map.of("networkPrefix", deviceService.getCurrentNetwork()));
+    }
+
 }

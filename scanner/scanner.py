@@ -8,6 +8,7 @@ from getmac import get_mac_address
 
 
 BACKEND_URL = "https://network-monitor-backend.onrender.com/api/devices"
+SESSION_URL = "https://network-monitor-backend.onrender.com/api/session/start"
 MAX_THREADS = 50
 
 # Cache manufacturer lookups so we don't spam the API
@@ -77,6 +78,15 @@ def send_to_backend(device):
     except requests.exceptions.ConnectionError:
         print(f"  → Backend unreachable. Is Spring Boot running?")
 
+def start_session(network_prefix):
+    try:
+        response = requests.post(SESSION_URL, json={"networkPrefix": network_prefix}, timeout=5)
+        if response.status_code == 200:
+            print(f"[{get_timestamp()}] Session started for network: {network_prefix}0/24")
+        else:
+            print(f"  → Session start failed: {response.status_code}")
+    except requests.exceptions.ConnectionError:
+        print(f"  → Backend unreachable. Is the backend running?")
 
 def scan_device(ip):
     try:
@@ -146,6 +156,9 @@ network_prefix = get_network_prefix()
 previous_devices = {}
 
 print(f"[{get_timestamp()}] Network monitor started.\n")
+
+# Tell backend we're starting fresh on this network
+start_session(network_prefix)
 
 while True:
     print(f"[{get_timestamp()}] Scanning network...\n")

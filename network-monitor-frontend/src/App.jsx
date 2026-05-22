@@ -253,6 +253,7 @@ function App() {
   const [events, setEvents] = useState([]);
   const [connected, setConnected] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState(null);
+  const [networkPrefix, setNetworkPrefix] = useState('Detecting...');
 
   useEffect(() => {
     fetch(`${API_URL}/api/devices`)      
@@ -267,6 +268,12 @@ function App() {
         setEvents(sorted);
       })
       .catch(err => console.error("Error fetching events:", err));
+
+    fetch(`${API_URL}/api/session/network`)
+      .then(res => res.json())
+      .then(data => setNetworkPrefix(data.networkPrefix || 'Unknown Network'))
+      .catch(() => setNetworkPrefix('Unknown Network'));
+
   }, []);
 
   useEffect(() => {
@@ -453,6 +460,9 @@ const handleExportPDF = () => {
             PulseNet Ops
           </h1>
           <p className="text-sm text-slate-400 mt-1">Real-Time Core Infrastructure Network Monitor</p>
+          <p className="text-xs text-cyan-500/70 mt-1 font-mono">
+            Network: {networkPrefix}0/24
+          </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <button
