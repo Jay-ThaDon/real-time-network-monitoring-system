@@ -53,6 +53,8 @@ The Python scanner runs locally on any machine connected to the target network. 
 ---
 
 ## Project Structure
+
+```
 real-time-network-monitoring-system/
 ├── scanner/                  # Python network scanner
 │   └── scanner.py
@@ -64,6 +66,7 @@ real-time-network-monitoring-system/
 │   └── Dockerfile
 ├── docker-compose.yml        # Local Docker setup
 └── README.md
+```
 
 ---
 
