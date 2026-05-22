@@ -9,7 +9,8 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 
 const formatTime = (timestamp) => {
   if (!timestamp) return 'Never';
-  return new Date(timestamp).toLocaleTimeString([], {
+  const ts = timestamp.endsWith('Z') ? timestamp : timestamp + 'Z';
+  return new Date(ts).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
@@ -20,7 +21,8 @@ const formatTime = (timestamp) => {
 
 const formatDateTime = (timestamp) => {
   if (!timestamp) return '';
-  return new Date(timestamp).toLocaleString([], {
+  const ts = timestamp.endsWith('Z') ? timestamp : timestamp + 'Z';
+  return new Date(ts).toLocaleString([], {
     dateStyle: 'short',
     timeStyle: 'short',
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
